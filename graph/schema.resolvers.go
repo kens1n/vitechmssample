@@ -9,7 +9,14 @@ import (
 )
 
 func (r *queryResolver) Hashcode(ctx context.Context, code string) (string, error) {
-	return "it's data", nil
+
+	guid := r.GuidService.GuidGenerate(code)
+	hash := r.HashService.HashCalc(code)
+
+	return r.HdataRepo.GetHdataDataByGuidAndHash(
+		guid,
+		hash,
+	)
 }
 
 // Query returns generated.QueryResolver implementation.

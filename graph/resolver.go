@@ -5,4 +5,13 @@ package graph
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
 
-type Resolver struct{}
+import (
+	"github.com/kens1n/vitechmssample/external_services"
+	"github.com/kens1n/vitechmssample/postgres"
+)
+
+type Resolver struct {
+	HdataRepo   postgres.HdataRepo
+	GuidService external_services.GuidServiceInterface
+	HashService external_services.HashServiceInterface
+}
