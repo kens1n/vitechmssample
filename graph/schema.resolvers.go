@@ -10,6 +10,16 @@ import (
 	"github.com/kens1n/vitechmssample/tracing"
 )
 
+type guidChannelResponse struct {
+	guid string
+	err  error
+}
+
+type hashChannelResponse struct {
+	hash string
+	err  error
+}
+
 func (r *queryResolver) Hashcode(ctx context.Context, code string) (string, error) {
 
 	//guid, _ := r.GuidService.GuidGenerate(code)
@@ -17,39 +27,51 @@ func (r *queryResolver) Hashcode(ctx context.Context, code string) (string, erro
 	span := tracing.StartSpanWithRootSpanInContext(ctx, "Hashcode")
 	defer span.Finish()
 
-	ch1 := make(chan string, 1)
-	ch2 := make(chan string, 1)
+	ch1 := make(chan guidChannelResponse, 1)
+	ch2 := make(chan hashChannelResponse, 1)
 
 	go getGuid(code, r, ch1, ctx)
 	go getHash(code, r, ch2, ctx)
 
-	guid := <-ch1
-	hash := <-ch2
+	guidResponse := <-ch1
+	if guidResponse.err != nil {
+		return "", guidResponse.err
+	}
+	hashResponse := <-ch2
+	if hashResponse.err != nil {
+		return "", hashResponse.err
+	}
 
 	return getHdataDataByGuidAndHash(
 		r.HdataRepo,
 		ctx,
-		guid,
-		hash,
+		guidResponse.guid,
+		hashResponse.hash,
 	)
 }
 
-func getGuid(code string, r *queryResolver, ch chan string, ctx context.Context) {
+func getGuid(code string, r *queryResolver, ch chan guidChannelResponse, ctx context.Context) {
 	span := tracing.StartSpanWithRootSpanInContext(ctx, "getGuid")
 	defer span.Finish()
 	defer close(ch)
-	guid, _ := r.GuidService.GuidGenerate(code)
+	guid, err := r.GuidService.GuidGenerate(code)
 
-	ch <- guid
+	ch <- guidChannelResponse{
+		guid,
+		err,
+	}
 }
 
-func getHash(code string, r *queryResolver, ch chan string, ctx context.Context) {
+func getHash(code string, r *queryResolver, ch chan hashChannelResponse, ctx context.Context) {
 	span := tracing.StartSpanWithRootSpanInContext(ctx, "getHash")
 	defer span.Finish()
 	defer close(ch)
-	hash, _ := r.HashService.HashCalc(code)
+	hash, err := r.HashService.HashCalc(code)
 
-	ch <- hash
+	ch <- hashChannelResponse{
+		hash,
+		err,
+	}
 }
 
 func getHdataDataByGuidAndHash(hdataRepo postgres.HdataRepo, ctx context.Context, guid string, hash string) (string, error) {

@@ -108,5 +108,6 @@ func main() {
 	http.Handle("/query", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Printf("connect to http://localhost:16686/search for jaeger")
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
